@@ -86,7 +86,7 @@ impl Trie {
 mod tests {
     use super::*;
     #[test]
-    fn check_start_with() {
+    fn test_start_with() {
         let mut trie = Trie::new();
         trie.insert("Hello");
         trie.insert("Like");
@@ -100,5 +100,32 @@ mod tests {
         assert!(trie.starts_with(""));
         assert!(trie.starts_with("Interest"));
         assert!(!trie.starts_with("prefix"));
+    }
+    #[test]
+    fn test_insert_and_search() {
+        let mut trie = Trie::new();
+        trie.insert("Hello");
+        trie.insert("Like");
+        trie.insert("Interesting");
+        trie.insert("K");
+        trie.insert("Half");
+
+        assert!(trie.search("Hello"));
+        assert!(trie.search("Like"));
+        assert!(trie.search("Interesting"));
+        assert!(trie.search("K"));
+        assert!(trie.search("Half"));
+        assert!(!trie.search("prefix"));
+    }
+    fn test_insert_words() {
+        let mut trie = Trie::new();
+        let words = vec!["One", "Two", "Three", "Four", "Five"];
+        trie.insert_words(&words);
+        assert!(trie.search("One"));
+        assert!(trie.search("Two"));
+        assert!(trie.search("Three"));
+        assert!(trie.search("Four"));
+        assert!(trie.search("Five"));
+        assert!(!trie.search("Six"));
     }
 }

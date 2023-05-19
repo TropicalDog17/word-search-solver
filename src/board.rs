@@ -9,9 +9,9 @@ impl Board {
         let cols = letters.get(0).unwrap().len();
         let rows = letters.len();
         Board {
-            letters: letters.to_vec(),
-            cols: cols,
-            rows: rows,
+            letters: letters.to_owned(),
+            cols,
+            rows,
         }
     }
     pub fn get_rows(&self) -> usize {
@@ -56,6 +56,7 @@ impl Board {
         return Some(seq);
     }
     fn add(u: usize, i: i32) -> Option<usize> {
+        // Prevent usize index overflow and handle substraction
         if i.is_negative() {
             u.checked_sub(i.wrapping_abs() as u32 as usize)
         } else {
@@ -101,5 +102,37 @@ impl Direction {
             Direction::DownRight,
         ];
         DIRECTIONS.iter()
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_get_letter() {
+        let b = Board::new(&vec![
+            vec!['a', 'b', 'c'],
+            vec!['d', 'e', 'f'],
+            vec!['g', 'h', 'i'],
+        ]);
+        assert_eq!(b.get_letter(Some(0), Some(0)), Some("a".to_string()));
+    }
+    #[test]
+    fn test_get_string_from_direction() {
+        let b = Board::new(&vec![
+            vec!['a', 'b', 'c'],
+            vec!['d', 'e', 'f'],
+            vec!['g', 'h', 'i'],
+        ]);
+        assert_eq!(
+            b.get_string_from_direction(0, 0, &Direction::Right, 3),
+            Some("abc".to_string())
+        );
+        assert_eq!(b.get_string_from_direction(0, 0, &Direction::Up, 3), None);
+    }
+    #[test]
+    fn test_add() {
+        assert_eq!(Board::add(0, 1), Some(1));
+        assert_eq!(Board::add(0, -1), None);
+        assert_eq!(Board::add(2, -1), Some(1));
     }
 }
