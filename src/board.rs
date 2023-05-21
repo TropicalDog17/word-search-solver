@@ -1,3 +1,4 @@
+use crate::trie::Trie;
 use std::slice::Iter;
 pub struct Board {
     letters: Vec<Vec<char>>,
@@ -12,6 +13,62 @@ impl Board {
             letters: letters.to_owned(),
             cols,
             rows,
+        }
+    }
+    /// Get all possible words in that position, then append all the words found to the result vector
+    ///
+    /// # Arguments
+    ///
+    /// * `i` - The row index of the position
+    /// * `j` - The column index of the position
+    /// * `result` - The vector to store the result
+    /// * `board` - The board to search
+    /// * `trie` - The trie to search
+    ///
+    /// # Examples
+    /// ```
+    ///
+    /// use word_search_solver::board::Board;
+    /// use word_search_solver::trie::Trie;
+    /// use std::collections::HashSet;
+    /// let board = Board::new(&vec![vec!['a', 'b', 'c'], vec!['d', 'e', 'f'], vec!['g', 'h', 'i']]);
+    /// let mut trie = Trie::new();
+    /// trie.insert_words(&vec!["abc", "adg", "ghi"]);
+    /// let mut result: Vec<String> = Vec::new();
+    /// board.get_all_possible_word(0, 0, &mut result, &board, &trie);
+    /// let expected_result: HashSet<&str> = HashSet::from(["abc", "adg"]);
+    /// assert!(expected_result.contains(result[0].as_str()));
+    /// assert!(expected_result.contains(result[1].as_str()));
+    /// ```
+    ///
+    ///
+
+    pub fn get_all_possible_word(
+        &self,
+        i: usize,
+        j: usize,
+        result: &mut Vec<String>,
+        board: &Board,
+        trie: &Trie,
+    ) {
+        // Check if a given position is valid
+        for d in Direction::iterator() {
+            let mut dist: i32 = 0;
+            let mut prefix = board.get_string_from_direction(i, j, d, dist).unwrap();
+            while trie.starts_with(&prefix) {
+                if trie.search(&prefix) {
+                    result.push(prefix.clone());
+                    break;
+                } else {
+                    dist += 1;
+                    if let Some(p) = board.get_string_from_direction(i, j, d, dist) {
+                        prefix = p;
+                        continue;
+                    } else {
+                        break;
+                    }
+                }
+            }
         }
     }
     pub fn get_rows(&self) -> usize {
@@ -55,6 +112,7 @@ impl Board {
         }
         return Some(seq);
     }
+
     fn add(u: usize, i: i32) -> Option<usize> {
         // Prevent usize index overflow and handle substraction
         if i.is_negative() {
