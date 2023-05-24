@@ -117,6 +117,7 @@ mod tests {
         assert!(trie.search("Half"));
         assert!(!trie.search("prefix"));
     }
+    #[test]
     fn test_insert_words() {
         let mut trie = Trie::new();
         let words = vec!["One", "Two", "Three", "Four", "Five"];

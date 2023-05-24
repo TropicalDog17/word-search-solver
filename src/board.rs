@@ -1,4 +1,6 @@
+use crate::constant::BOARD_SIZE;
 use crate::trie::Trie;
+use ggez::glam::Vec2;
 use std::slice::Iter;
 pub struct Board {
     pub letters: Vec<Vec<char>>,
@@ -6,6 +8,7 @@ pub struct Board {
     rows: usize,
 }
 #[derive(Debug)]
+
 pub struct WordPosition {
     start: (usize, usize),
     end: (usize, usize),
@@ -14,11 +17,18 @@ impl WordPosition {
     pub fn new(start: (usize, usize), end: (usize, usize)) -> Self {
         WordPosition { start, end }
     }
+    ///
     pub fn to_1d(&self, board_size: usize) -> (usize, usize) {
         let (start_i, start_j) = self.start;
         let (end_i, end_j) = self.end;
         let start = start_i * board_size + start_j;
         let end = end_i * board_size + end_j;
+        (start, end)
+    }
+    /// Convert the raw usize position to a Vec2 tuple
+    pub fn to_vec2(&self) -> (Vec2, Vec2) {
+        let start = Vec2::new(self.start.1 as f32, self.start.0 as f32);
+        let end = Vec2::new(self.end.1 as f32, self.end.0 as f32);
         (start, end)
     }
 }
@@ -36,7 +46,7 @@ impl SearchState {
             position: (0, 0),
             direction: Direction::Up,
             distance: 0,
-            limit: 15,
+            limit: BOARD_SIZE,
             feasible: true,
         }
     }
@@ -45,7 +55,7 @@ impl SearchState {
             position,
             direction,
             distance,
-            limit: 15,
+            limit: BOARD_SIZE,
             feasible: true,
         }
     }
@@ -73,7 +83,7 @@ impl Board {
             rows,
         }
     }
-    /// Move the position to the next position
+    /// Given current position, return the next position in the board
     /// # Arguments
     /// * `i` - The row index of the position
     /// * `j` - The column index of the position
@@ -162,7 +172,6 @@ impl Board {
         let (i, j) = state.position;
         let distance = state.distance;
         let direction = state.direction;
-        let limit = state.limit;
         let string = self.get_string_from_direction(i, j, &direction, distance);
         if let None = string {
             return None;
@@ -171,7 +180,10 @@ impl Board {
         if !trie.starts_with(&string) {
             state.feasible = false;
         } else {
-            state.feasible = true;
+            match self.get_string_from_direction(i, j, &direction, distance + 1) {
+                None => state.feasible = false,
+                Some(_) => state.feasible = true,
+            }
             if trie.search(&string) {
                 let word_position = WordPosition::new(
                     (i, j),
@@ -452,7 +464,6 @@ impl Direction {
 }
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
 
     use super::*;
     #[test]
