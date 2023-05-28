@@ -1,12 +1,8 @@
-use crate::constant::BOARD_SIZE;
+use crate::state::search_state::SearchState;
 use crate::trie::Trie;
 use ggez::glam::Vec2;
+use std::cmp::{max, min};
 use std::slice::Iter;
-pub struct Board {
-    pub letters: Vec<Vec<char>>,
-    cols: usize,
-    rows: usize,
-}
 #[derive(Debug)]
 
 pub struct WordPosition {
@@ -17,7 +13,20 @@ impl WordPosition {
     pub fn new(start: (usize, usize), end: (usize, usize)) -> Self {
         WordPosition { start, end }
     }
-    ///
+    /// Convert from 2D position to 1D position
+    /// For example: an 5x5 board, the position (1,2) will be converted to 7, and (4,4) will be converted to 24(0-indexed)
+    /// # Arguments
+    /// * `board_size` - The size of the board
+    /// # Returns
+    /// * `(usize, usize)` - The converted position
+    /// # Example
+    /// ```
+    /// use word_search_solver::state::board_state::WordPosition;
+    /// let word_pos = WordPosition::new((1,2), (4,4));
+    /// let (start, end) = word_pos.to_1d(5);
+    /// assert_eq!(start, 7);
+    /// assert_eq!(end, 24);
+    /// ```
     pub fn to_1d(&self, board_size: usize) -> (usize, usize) {
         let (start_i, start_j) = self.start;
         let (end_i, end_j) = self.end;
@@ -32,46 +41,11 @@ impl WordPosition {
         (start, end)
     }
 }
-#[derive(Debug)]
-pub struct SearchState {
-    pub position: (usize, usize),
-    pub direction: Direction,
-    pub distance: i32,
-    pub limit: usize,
-    pub feasible: bool,
-}
-impl SearchState {
-    pub fn new() -> Self {
-        SearchState {
-            position: (0, 0),
-            direction: Direction::Up,
-            distance: 0,
-            limit: BOARD_SIZE,
-            feasible: true,
-        }
-    }
-    pub fn from(position: (usize, usize), direction: Direction, distance: i32) -> Self {
-        SearchState {
-            position,
-            direction,
-            distance,
-            limit: BOARD_SIZE,
-            feasible: true,
-        }
-    }
-    pub fn current_prefix(&self) -> Option<WordPosition> {
-        let start = self.position;
-        if let Some(end) = Board::get_pos_from_direction(
-            self.position.0,
-            self.position.1,
-            &self.direction,
-            self.distance,
-        ) {
-            return Some(WordPosition::new(start, end));
-        } else {
-            None
-        }
-    }
+
+pub struct Board {
+    pub letters: Vec<Vec<char>>,
+    cols: usize,
+    rows: usize,
 }
 impl Board {
     pub fn new(letters: &Vec<Vec<char>>) -> Self {
@@ -91,7 +65,7 @@ impl Board {
     /// * `Option<(usize, usize)>` - The next position
     /// # Example
     /// ```
-    /// use word_search_solver::board::Board;
+    /// use word_search_solver::state::board_state::Board;
     /// let board = Board::new(&vec![vec!['a', 'b', 'c'], vec!['d', 'e', 'f'], vec!['g', 'h', 'i']]);
     /// let (i,j) = (0,0);
     /// let next_pos = board.next_pos(i,j);
@@ -120,11 +94,34 @@ impl Board {
             Some((i, j))
         }
     }
+    /// Given the current state, return the next state
+    /// # Arguments
+    /// * `state` - The current state
+    /// * `feasible` - Whether the current position and direction are feasible
+    /// # Returns
+    /// * `Option<SearchState>` - The next state
+    /// # Example
+    /// ```
+    /// use word_search_solver::state::board_state::Board;
+    /// use word_search_solver::state::search_state::SearchState;
+    /// use word_search_solver::state::board_state::Direction;
+    /// let board = Board::new(&vec![vec!['a', 'b', 'c'], vec!['d', 'e', 'f'], vec!['g', 'h', 'i']]);
+    /// let state = SearchState::from((0,0), Direction::Right, 0);
+    /// let next_state = board.next_state(&state, true); // Direction is feasible, check the next position in the same direction(increase distance by 1)
+    /// assert_eq!(next_state, Some(SearchState::from((0,0), Direction::Right, 1)));
+    /// let state = SearchState::from((0,0), Direction::Up, 0);
+    /// let next_state = board.next_state(&state, false); // Direction not feasible, move to next direction
+    /// assert_eq!(next_state, Some(SearchState::from((0,0), Direction::Down, 0)));
+    /// let state = SearchState::from((2,2), Direction::DownRight, 0);
+    /// let next_state = board.next_state(&state, false); // Direction not feasible, no more directions to check, no more positions to check, return None
+    /// assert_eq!(next_state, None);
     pub fn next_state(&self, state: &SearchState, feasible: bool) -> Option<SearchState> {
         let (i, j) = state.position;
         let distance = state.distance;
         let direction = state.direction;
+        // If the current direction is not feasible, attempt to move to the next direction
         if let None = self.get_string_from_direction(i, j, &direction, distance) {
+            // If there are no more directions to check, move to the next position
             if let None = direction.next() {
                 if let None = self.next_pos(i, j) {
                     return None;
@@ -136,12 +133,14 @@ impl Board {
                     ));
                 }
             }
+            // Otherwise, move to the next direction
             return Some(SearchState::from(
                 state.position,
                 direction.next().unwrap(),
                 0,
             ));
         } else {
+            // If the current direction is feasible, move to the next position in the same direction
             if feasible {
                 return Some(SearchState::from(
                     state.position,
@@ -149,10 +148,13 @@ impl Board {
                     state.distance + 1,
                 ));
             } else {
+                // If the current direction is not feasible, attempt to move to the next direction
                 if let None = direction.next() {
                     if let None = self.next_pos(i, j) {
+                        // If there are no more positions to check, return None
                         return None;
                     } else {
+                        // Otherwise, move to the next position
                         return Some(SearchState::from(
                             self.next_pos(i, j).unwrap(),
                             Direction::Up,
@@ -160,6 +162,7 @@ impl Board {
                         ));
                     }
                 }
+                // Otherwise, move to the next direction
                 return Some(SearchState::from(
                     state.position,
                     direction.next().unwrap(),
@@ -194,6 +197,90 @@ impl Board {
         }
         None
     }
+    /// Get 2d position based on its index in the 1d array
+    /// # Arguments
+    /// * `index` - The index of the 1d array
+    /// # Returns
+    /// * `(usize, usize)` - The 2d position
+    /// # Example
+    /// ```
+    /// use word_search_solver::state::board_state::Board;
+    /// let board = Board::new(&vec![vec!['a', 'b', 'c'], vec!['d', 'e', 'f'], vec!['g', 'h', 'i']]);
+    /// assert_eq!(board.get_2d_position(0), (0, 0));
+    /// assert_eq!(board.get_2d_position(1), (0, 1));
+    /// assert_eq!(board.get_2d_position(2), (0, 2));
+    /// assert_eq!(board.get_2d_position(3), (1, 0));
+    /// assert_eq!(board.get_2d_position(4), (1, 1));
+    pub fn get_2d_position(&self, index: usize) -> (usize, usize) {
+        let row = index / self.cols;
+        let col = index % self.cols;
+        (row, col)
+    }
+    /// Get word from word position 1d
+    /// # Arguments
+    /// * `start` - The start position of the word
+    /// * `end` - The end position of the word
+    /// # Returns
+    /// * `String` - The word
+    /// # Example
+    /// ```
+    /// use word_search_solver::state::board_state::Board;
+    /// let board = Board::new(&vec![vec!['a', 'b', 'c'], vec!['d', 'e', 'f'], vec!['g', 'h', 'i']]);
+    /// assert_eq!(board.get_word_from_1d_position(0, 2), "abc");    
+    /// assert_eq!(board.get_word_from_1d_position(0, 4), "ae");
+    /// assert_eq!(board.get_word_from_1d_position(0, 8), "aei");
+    /// assert_eq!(board.get_word_from_1d_position(1, 5), "bf");
+    /// assert_eq!(board.get_word_from_1d_position(2, 4), "ce");
+    /// assert_eq!(board.get_word_from_1d_position(2, 0), "cba");
+    /// assert_eq!(board.get_word_from_1d_position(4, 0), "ea");
+    /// ```
+    pub fn get_word_from_1d_position(&self, start: usize, end: usize) -> String {
+        let mut word = String::new();
+
+        // 2d positions
+        let start_pos = self.get_2d_position(start);
+        let end_pos = self.get_2d_position(end);
+
+        // Horizontal
+        if start_pos.0 == end_pos.0 {
+            if start_pos.1 > end_pos.1 {
+                for i in (end_pos.1..=start_pos.1).rev() {
+                    word.push(self.letters[start_pos.0][i]);
+                }
+            } else {
+                for i in start_pos.1..=end_pos.1 {
+                    word.push(self.letters[start_pos.0][i]);
+                }
+            }
+        }
+        // Vertical
+        else if start_pos.1 == end_pos.1 {
+            if start_pos.0 > end_pos.0 {
+                for i in (end_pos.0..=start_pos.0).rev() {
+                    word.push(self.letters[i][start_pos.1]);
+                }
+            } else {
+                for i in start_pos.0..=end_pos.0 {
+                    word.push(self.letters[i][start_pos.1]);
+                }
+            }
+        } else {
+            // Diagonal
+            let (mut i, mut j) = start_pos;
+            let x_diff = if start_pos.0 > end_pos.0 { -1 } else { 1 };
+            let y_diff = if start_pos.1 > end_pos.1 { -1 } else { 1 };
+            while i <= usize::max(start_pos.0, end_pos.0)
+                && j <= usize::max(start_pos.1, end_pos.1)
+                && i >= usize::min(start_pos.0, end_pos.0)
+                && j >= usize::min(start_pos.1, end_pos.1)
+            {
+                word.push(self.letters[i][j]);
+                i = (i as i32 + x_diff) as usize;
+                j = (j as i32 + y_diff) as usize;
+            }
+        }
+        word
+    }
     /// Get all possible words in that position, then append all the words found to the result vector
     ///
     /// # Arguments
@@ -207,7 +294,7 @@ impl Board {
     /// # Examples
     /// ```
     ///
-    /// use word_search_solver::board::Board;
+    /// use word_search_solver::state::board_state::Board;
     /// use word_search_solver::trie::Trie;
     /// use std::collections::HashSet;
     /// let board = Board::new(&vec![vec!['a', 'b', 'c'], vec!['d', 'e', 'f'], vec!['g', 'h', 'i']]);
@@ -225,8 +312,6 @@ impl Board {
     /// assert!(expected_result_idx.contains(&result_idx[0]));
     /// assert!(expected_result_idx.contains(&result_idx[1]));
     /// ```
-    ///
-    ///
     pub fn get_all_possible_word(
         &self,
         i: usize,
@@ -296,7 +381,7 @@ impl Board {
     ///
     /// # Examples
     /// ```
-    /// use word_search_solver::board::Board;
+    /// use word_search_solver::state::board_state::Board;
     /// let board = Board::new(&vec![vec!['a', 'b', 'c'], vec!['d', 'e', 'f'], vec!['g', 'h', 'i']]);
     /// assert_eq!(board.get_letter(Some(0), Some(0)), Some("a".to_string()));
     /// assert_eq!(board.get_letter(Some(0), Some(1)), Some("b".to_string()));
@@ -332,8 +417,8 @@ impl Board {
     /// * `distance` - The distance to search, if = 1 then return the letter at the position
     /// # Examples
     /// ```
-    /// use word_search_solver::board::Board;
-    /// use word_search_solver::board::Direction;
+    /// use word_search_solver::state::board_state::Board;
+    /// use word_search_solver::state::board_state::Direction;
     /// let board = Board::new(&vec![vec!['a', 'b', 'c'], vec!['d', 'e', 'f'], vec!['g', 'h', 'i']]);
     /// assert_eq!(board.get_string_from_direction(0, 0, &Direction::Right, 2), Some("abc".to_string()));
     /// assert_eq!(board.get_string_from_direction(0, 0, &Direction::Down, 2), Some("adg".to_string()));
@@ -377,8 +462,8 @@ impl Board {
     /// * `distance` - The distance to search, if = 0 then return the letter at the position
     /// # Examples
     /// ```
-    /// use word_search_solver::board::Board;
-    /// use word_search_solver::board::Direction;
+    /// use word_search_solver::state::board_state::Board;
+    /// use word_search_solver::state::board_state::Direction;
     /// let board = Board::new(&vec![vec!['a', 'b', 'c'], vec!['d', 'e', 'f'], vec!['g', 'h', 'i']]);
     /// assert_eq!(Board::get_pos_from_direction(0, 0, &Direction::Right, 2), Some((0, 2)));
     /// assert_eq!(Board::get_pos_from_direction(0, 0, &Direction::Down, 2), Some((2, 0)));
@@ -409,7 +494,7 @@ impl Board {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
     Up,
     Down,

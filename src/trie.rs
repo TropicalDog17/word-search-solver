@@ -1,7 +1,4 @@
 use std::collections::HashMap;
-/*
-    TrieNode Implemention
-*/
 pub struct TrieNode {
     children: HashMap<char, TrieNode>,
     is_word: bool,
@@ -16,25 +13,20 @@ impl TrieNode {
     }
 }
 
-/*
-    Trie Implementation
-*/
-
 pub struct Trie {
     root: TrieNode,
 }
-
-/**
- * `&self` means the method takes an immutable reference.
- * If you need a mutable reference, change it to `&mut self` instead.
- */
 impl Trie {
     pub fn new() -> Self {
         Trie {
             root: TrieNode::new(),
         }
     }
-
+    pub fn from(words: &Vec<&str>) -> Self {
+        let mut trie = Trie::new();
+        trie.insert_words(words);
+        trie
+    }
     pub fn insert(&mut self, word: &str) {
         let mut current_node = &mut self.root;
 
