@@ -6,7 +6,6 @@ use crate::utils::*;
 use ggez::event::EventHandler;
 use ggez::graphics::{self};
 use ggez::{glam::*, Context, GameResult};
-use std::cmp::{max, min};
 use std::path::Path;
 pub struct MainState {
     pub grid_mesh: graphics::Mesh,
@@ -42,7 +41,7 @@ impl MainState {
         let trie = Trie::from(&target_words_str);
         let s = MainState {
             // ...
-            grid_mesh: grid_mesh,
+            grid_mesh,
             line_mesh,
             board_state,
             mb: graphics::MeshBuilder::new(),

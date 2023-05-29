@@ -12,9 +12,19 @@ impl TrieNode {
         }
     }
 }
+impl Default for TrieNode {
+    fn default() -> Self {
+        TrieNode::new()
+    }
+}
 
 pub struct Trie {
     root: TrieNode,
+}
+impl Default for Trie {
+    fn default() -> Self {
+        Trie::new()
+    }
 }
 impl Trie {
     pub fn new() -> Self {
@@ -57,7 +67,7 @@ impl Trie {
             }
         }
 
-        return current_node.is_word;
+        current_node.is_word
     }
 
     pub fn starts_with(&self, prefix: &str) -> bool {
@@ -70,7 +80,7 @@ impl Trie {
             }
         }
 
-        return true;
+        true
     }
 }
 

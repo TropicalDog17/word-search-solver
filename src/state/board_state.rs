@@ -1,7 +1,6 @@
 use crate::state::search_state::SearchState;
 use crate::trie::Trie;
 use ggez::glam::Vec2;
-use std::cmp::{max, min};
 use std::slice::Iter;
 #[derive(Debug)]
 
@@ -120,18 +119,18 @@ impl Board {
         let distance = state.distance;
         let direction = state.direction;
         // If the current direction is not feasible, attempt to move to the next direction
-        if let None = self.get_string_from_direction(i, j, &direction, distance) {
+        if self
+            .get_string_from_direction(i, j, &direction, distance)
+            .is_none()
+        {
             // If there are no more directions to check, move to the next position
-            if let None = direction.next() {
-                if let None = self.next_pos(i, j) {
-                    return None;
-                } else {
-                    return Some(SearchState::from(
-                        self.next_pos(i, j).unwrap(),
-                        Direction::Up,
-                        0,
-                    ));
-                }
+            if direction.next().is_none() {
+                self.next_pos(i, j)?;
+                return Some(SearchState::from(
+                    self.next_pos(i, j).unwrap(),
+                    Direction::Up,
+                    0,
+                ));
             }
             // Otherwise, move to the next direction
             return Some(SearchState::from(
@@ -139,47 +138,38 @@ impl Board {
                 direction.next().unwrap(),
                 0,
             ));
-        } else {
-            // If the current direction is feasible, move to the next position in the same direction
-            if feasible {
-                return Some(SearchState::from(
-                    state.position,
-                    state.direction,
-                    state.distance + 1,
-                ));
-            } else {
-                // If the current direction is not feasible, attempt to move to the next direction
-                if let None = direction.next() {
-                    if let None = self.next_pos(i, j) {
-                        // If there are no more positions to check, return None
-                        return None;
-                    } else {
-                        // Otherwise, move to the next position
-                        return Some(SearchState::from(
-                            self.next_pos(i, j).unwrap(),
-                            Direction::Up,
-                            0,
-                        ));
-                    }
-                }
-                // Otherwise, move to the next direction
-                return Some(SearchState::from(
-                    state.position,
-                    direction.next().unwrap(),
-                    0,
-                ));
-            }
         }
+        // If the current direction is feasible, move to the next position in the same direction
+        if feasible {
+            return Some(SearchState::from(
+                state.position,
+                state.direction,
+                state.distance + 1,
+            ));
+        }
+        // If the current direction is not feasible, attempt to move to the next direction
+        if direction.next().is_none() {
+            self.next_pos(i, j)?;
+
+            // Otherwise, move to the next position
+            return Some(SearchState::from(
+                self.next_pos(i, j).unwrap(),
+                Direction::Up,
+                0,
+            ));
+        }
+        // Otherwise, move to the next direction
+        Some(SearchState::from(
+            state.position,
+            direction.next().unwrap(),
+            0,
+        ))
     }
     pub fn check_state(&self, state: &mut SearchState, trie: &Trie) -> Option<WordPosition> {
         let (i, j) = state.position;
         let distance = state.distance;
         let direction = state.direction;
-        let string = self.get_string_from_direction(i, j, &direction, distance);
-        if let None = string {
-            return None;
-        }
-        let string = string.unwrap();
+        let string = self.get_string_from_direction(i, j, &direction, distance)?;
         if !trie.starts_with(&string) {
             state.feasible = false;
         } else {
@@ -394,20 +384,11 @@ impl Board {
     ///
 
     pub fn get_letter(&self, x: Option<usize>, y: Option<usize>) -> Option<String> {
-        if x == None || y == None {
-            return None;
-        }
-        match (x, y) {
-            (Some(x), Some(y)) => {
-                if let Some(row) = self.letters.get(x) {
-                    if let Some(letter) = row.get(y) {
-                        return Some(letter.to_string());
-                    }
-                }
-                None
-            }
-            _ => return None,
-        }
+        let x = x?;
+        let y = y?;
+        let row = self.letters.get(x)?;
+        let letter = row.get(y)?;
+        Some(letter.to_string())
     }
     /// Get the string in the board from a given position and direction
     /// # Arguments
@@ -442,16 +423,13 @@ impl Board {
         let mut seq = String::new();
         let coord_diff: CoordDiff = direction.to_coord_diff();
         for i in 0..distance + 1 {
-            if let Some(s) = self.get_letter(
+            let s = self.get_letter(
                 Board::add(start_x, coord_diff.0 * i),
                 Board::add(start_y, coord_diff.1 * i),
-            ) {
-                seq.push_str(&s);
-            } else {
-                return None;
-            }
+            )?;
+            seq.push_str(&s);
         }
-        return Some(seq);
+        Some(seq)
     }
     ///
     /// Get the position in the board from a given position and direction
@@ -478,7 +456,7 @@ impl Board {
         let coord_diff: CoordDiff = direction.to_coord_diff();
         let x = Board::add(i, coord_diff.0 * distance);
         let y = Board::add(j, coord_diff.1 * distance);
-        if x == None || y == None {
+        if x.is_none() || y.is_none() {
             return None;
         }
         Some((x.unwrap(), y.unwrap()))
@@ -494,8 +472,9 @@ impl Board {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Direction {
+    #[default]
     Up,
     Down,
     Left,

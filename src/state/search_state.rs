@@ -8,8 +8,8 @@ pub struct SearchState {
     pub limit: usize,
     pub feasible: bool,
 }
-impl SearchState {
-    pub fn new() -> Self {
+impl Default for SearchState {
+    fn default() -> Self {
         SearchState {
             position: (0, 0),
             direction: Direction::Up,
@@ -17,6 +17,11 @@ impl SearchState {
             limit: BOARD_SIZE,
             feasible: true,
         }
+    }
+}
+impl SearchState {
+    pub fn new() -> Self {
+        SearchState::default()
     }
     pub fn from(position: (usize, usize), direction: Direction, distance: i32) -> Self {
         SearchState {
@@ -29,15 +34,12 @@ impl SearchState {
     }
     pub fn current_prefix(&self) -> Option<WordPosition> {
         let start = self.position;
-        if let Some(end) = Board::get_pos_from_direction(
+        Board::get_pos_from_direction(
             self.position.0,
             self.position.1,
             &self.direction,
             self.distance,
-        ) {
-            return Some(WordPosition::new(start, end));
-        } else {
-            None
-        }
+        )
+        .map(|end| WordPosition::new(start, end))
     }
 }

@@ -10,16 +10,14 @@ pub fn fetch_board(file_path: &Path) -> Vec<Vec<char>> {
     let file = File::open(file_path).unwrap();
     let reader = BufReader::new(file);
     let mut result = Vec::new();
-    for line in reader.lines() {
-        if let Ok(line) = line {
-            let mut vec_letter = Vec::new();
-            for c in line.chars() {
-                if c.is_alphabetic() {
-                    vec_letter.push(c);
-                }
+    for line in reader.lines().flatten() {
+        let mut vec_letter = Vec::new();
+        for c in line.chars() {
+            if c.is_alphabetic() {
+                vec_letter.push(c);
             }
-            result.push(vec_letter.clone());
         }
+        result.push(vec_letter.clone());
     }
 
     println!("Letters: {:?}", result);
@@ -29,7 +27,7 @@ pub fn fetch_board(file_path: &Path) -> Vec<Vec<char>> {
 pub fn fetch_target_words(file_path: &Path) -> Vec<String> {
     let contents = fs::read_to_string(file_path).expect("Should have been able to read the file");
     let mut result = Vec::new();
-    for word in contents.split(" ") {
+    for word in contents.split(' ') {
         result.push(word.to_owned());
     }
     result
@@ -89,12 +87,12 @@ pub fn draw_highlighted_line(
         return;
     }
     let start = Vec2::new(
-        START_X + GRID_SIZE * start.x as f32 + GRID_SIZE / 2.0,
-        START_Y + GRID_SIZE * start.y as f32 + GRID_SIZE / 2.0,
+        START_X + GRID_SIZE * start.x + GRID_SIZE / 2.0,
+        START_Y + GRID_SIZE * start.y + GRID_SIZE / 2.0,
     );
     let end = Vec2::new(
-        START_X + GRID_SIZE * end.x as f32 + GRID_SIZE / 2.0,
-        START_Y + GRID_SIZE * end.y as f32 + GRID_SIZE / 2.0,
+        START_X + GRID_SIZE * end.x + GRID_SIZE / 2.0,
+        START_Y + GRID_SIZE * end.y + GRID_SIZE / 2.0,
     );
     let mb = &mut graphics::MeshBuilder::new();
     if start == end {
