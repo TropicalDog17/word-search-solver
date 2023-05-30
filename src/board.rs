@@ -20,7 +20,7 @@ impl WordPosition {
     /// * `(usize, usize)` - The converted position
     /// # Example
     /// ```
-    /// use word_search_solver::state::board_state::WordPosition;
+    /// use word_search_solver::board::WordPosition;
     /// let word_pos = WordPosition::new((1,2), (4,4));
     /// let (start, end) = word_pos.to_1d(5);
     /// assert_eq!(start, 7);
@@ -64,7 +64,7 @@ impl Board {
     /// * `Option<(usize, usize)>` - The next position
     /// # Example
     /// ```
-    /// use word_search_solver::state::board_state::Board;
+    /// use word_search_solver::board::Board;
     /// let board = Board::new(&vec![vec!['a', 'b', 'c'], vec!['d', 'e', 'f'], vec!['g', 'h', 'i']]);
     /// let (i,j) = (0,0);
     /// let next_pos = board.next_pos(i,j);
@@ -101,9 +101,9 @@ impl Board {
     /// * `Option<SearchState>` - The next state
     /// # Example
     /// ```
-    /// use word_search_solver::state::board_state::Board;
+    /// use word_search_solver::board::Board;
     /// use word_search_solver::state::search_state::SearchState;
-    /// use word_search_solver::state::board_state::Direction;
+    /// use word_search_solver::board::Direction;
     /// let board = Board::new(&vec![vec!['a', 'b', 'c'], vec!['d', 'e', 'f'], vec!['g', 'h', 'i']]);
     /// let state = SearchState::from((0,0), Direction::Right, 0);
     /// let next_state = board.next_state(&state, true); // Direction is feasible, check the next position in the same direction(increase distance by 1)
@@ -194,7 +194,7 @@ impl Board {
     /// * `(usize, usize)` - The 2d position
     /// # Example
     /// ```
-    /// use word_search_solver::state::board_state::Board;
+    /// use word_search_solver::board::Board;
     /// let board = Board::new(&vec![vec!['a', 'b', 'c'], vec!['d', 'e', 'f'], vec!['g', 'h', 'i']]);
     /// assert_eq!(board.get_2d_position(0), (0, 0));
     /// assert_eq!(board.get_2d_position(1), (0, 1));
@@ -214,7 +214,7 @@ impl Board {
     /// * `String` - The word
     /// # Example
     /// ```
-    /// use word_search_solver::state::board_state::Board;
+    /// use word_search_solver::board::Board;
     /// let board = Board::new(&vec![vec!['a', 'b', 'c'], vec!['d', 'e', 'f'], vec!['g', 'h', 'i']]);
     /// assert_eq!(board.get_word_from_1d_position(0, 2), "abc");    
     /// assert_eq!(board.get_word_from_1d_position(0, 4), "ae");
@@ -271,89 +271,6 @@ impl Board {
         }
         word
     }
-    /// Get all possible words in that position, then append all the words found to the result vector
-    ///
-    /// # Arguments
-    ///
-    /// * `i` - The row index of the position
-    /// * `j` - The column index of the position
-    /// * `result` - The vector to store the result
-    /// * `board` - The board to search
-    /// * `trie` - The trie to search
-    ///
-    /// # Examples
-    /// ```
-    ///
-    /// use word_search_solver::state::board_state::Board;
-    /// use word_search_solver::trie::Trie;
-    /// use std::collections::HashSet;
-    /// let board = Board::new(&vec![vec!['a', 'b', 'c'], vec!['d', 'e', 'f'], vec!['g', 'h', 'i']]);
-    /// let mut trie = Trie::new();
-    /// trie.insert_words(&vec!["abc", "adg", "ghi"]);
-    /// let mut result: Vec<String> = Vec::new();
-    /// let mut result_idx: Vec<(usize, usize)> = Vec::new();
-    /// let mut current_idx: (usize, usize) = (0, 0);
-    /// board.get_all_possible_word(0, 0, &mut result, &mut result_idx, &board, &trie, &mut current_idx );
-    /// let expected_result: HashSet<&str> = HashSet::from(["abc", "adg"]);
-    /// let expected_result_idx: HashSet<(usize, usize)> = HashSet::from([(0, 2), (0, 6)]);
-    /// assert!(expected_result.contains(result[0].as_str()));
-    /// assert!(expected_result.contains(result[1].as_str()));
-    /// println!("{:?}", result_idx);
-    /// assert!(expected_result_idx.contains(&result_idx[0]));
-    /// assert!(expected_result_idx.contains(&result_idx[1]));
-    /// ```
-    pub fn get_all_possible_word(
-        &self,
-        i: usize,
-        j: usize,
-        result: &mut Vec<String>,
-        result_idx: &mut Vec<(usize, usize)>,
-        board: &Board,
-        trie: &Trie,
-        current_idx: &mut (usize, usize),
-    ) {
-        // Check if a given position is valid
-        for d in Direction::iterator() {
-            let mut dist: i32 = 0;
-            let mut prefix = board
-                .get_string_from_direction(i, j, d, dist)
-                .unwrap_or("".to_string());
-
-            if prefix.is_empty() {
-                continue;
-            }
-
-            while trie.starts_with(&prefix) {
-                if trie.search(&prefix) {
-                    // Get the start and end index of the prefix in the grid
-                    let start = (i, j);
-                    let end = (
-                        Board::add(i, d.to_coord_diff().0 * dist).unwrap_or_default(),
-                        Board::add(j, d.to_coord_diff().1 * dist).unwrap_or_default(),
-                    );
-                    let position_idx = (
-                        start.0 * board.get_cols() + start.1,
-                        end.0 * board.get_cols() + end.1,
-                    );
-                    *current_idx = position_idx;
-                    result.push(prefix.clone());
-                    result_idx.push((
-                        start.0 * board.get_cols() + start.1,
-                        end.0 * board.get_cols() + end.1,
-                    ));
-                    break;
-                } else {
-                    dist += 1;
-                    if let Some(p) = board.get_string_from_direction(i, j, d, dist) {
-                        prefix = p;
-                        continue;
-                    } else {
-                        break;
-                    }
-                }
-            }
-        }
-    }
     pub fn get_rows(&self) -> usize {
         self.rows
     }
@@ -371,7 +288,7 @@ impl Board {
     ///
     /// # Examples
     /// ```
-    /// use word_search_solver::state::board_state::Board;
+    /// use word_search_solver::board::Board;
     /// let board = Board::new(&vec![vec!['a', 'b', 'c'], vec!['d', 'e', 'f'], vec!['g', 'h', 'i']]);
     /// assert_eq!(board.get_letter(Some(0), Some(0)), Some("a".to_string()));
     /// assert_eq!(board.get_letter(Some(0), Some(1)), Some("b".to_string()));
@@ -398,8 +315,8 @@ impl Board {
     /// * `distance` - The distance to search, if = 1 then return the letter at the position
     /// # Examples
     /// ```
-    /// use word_search_solver::state::board_state::Board;
-    /// use word_search_solver::state::board_state::Direction;
+    /// use word_search_solver::board::Board;
+    /// use word_search_solver::board::Direction;
     /// let board = Board::new(&vec![vec!['a', 'b', 'c'], vec!['d', 'e', 'f'], vec!['g', 'h', 'i']]);
     /// assert_eq!(board.get_string_from_direction(0, 0, &Direction::Right, 2), Some("abc".to_string()));
     /// assert_eq!(board.get_string_from_direction(0, 0, &Direction::Down, 2), Some("adg".to_string()));
@@ -440,8 +357,8 @@ impl Board {
     /// * `distance` - The distance to search, if = 0 then return the letter at the position
     /// # Examples
     /// ```
-    /// use word_search_solver::state::board_state::Board;
-    /// use word_search_solver::state::board_state::Direction;
+    /// use word_search_solver::board::Board;
+    /// use word_search_solver::board::Direction;
     /// let board = Board::new(&vec![vec!['a', 'b', 'c'], vec!['d', 'e', 'f'], vec!['g', 'h', 'i']]);
     /// assert_eq!(Board::get_pos_from_direction(0, 0, &Direction::Right, 2), Some((0, 2)));
     /// assert_eq!(Board::get_pos_from_direction(0, 0, &Direction::Down, 2), Some((2, 0)));
@@ -568,44 +485,5 @@ mod tests {
         assert_eq!(Board::add(0, 1), Some(1));
         assert_eq!(Board::add(0, -1), None);
         assert_eq!(Board::add(2, -1), Some(1));
-    }
-    #[test]
-    fn test_get_all_possible_words() {
-        use crate::trie::Trie;
-        // 5x5 grid
-        let b = Board::new(&vec![
-            vec!['a', 'b', 'c', 'd', 'e'],
-            vec!['f', 'g', 'h', 'i', 'j'],
-            vec!['k', 'l', 'm', 'n', 'o'],
-            vec!['p', 'q', 'r', 's', 't'],
-            vec!['u', 'v', 'w', 'x', 'y'],
-        ]);
-
-        let words = vec!["nsx", "nrv", "nid", "nmlk"];
-        let mut trie = Trie::new();
-        trie.insert_words(&words);
-        let mut result = Vec::new();
-        let mut result_idx = Vec::new();
-        let mut current_idx = (0, 0);
-        b.get_all_possible_word(
-            2,
-            3,
-            &mut result,
-            &mut result_idx,
-            &b,
-            &trie,
-            &mut current_idx,
-        );
-        assert!(result.len() == 4);
-        assert!(result.contains(&"nsx".to_string()));
-        assert!(result.contains(&"nrv".to_string()));
-        assert!(result.contains(&"nid".to_string()));
-        assert!(result.contains(&"nmlk".to_string()));
-        println!("{:?}", result_idx);
-        assert!(result_idx.len() == 4);
-        assert!(result_idx.contains(&(13, 23)));
-        assert!(result_idx.contains(&(13, 21)));
-        assert!(result_idx.contains(&(13, 3)));
-        assert!(result_idx.contains(&(13, 10)));
     }
 }

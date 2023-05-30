@@ -1,5 +1,5 @@
+use crate::board::*;
 use crate::constant::*;
-use crate::state::board_state::*;
 #[derive(Debug, PartialEq, Eq)]
 pub struct SearchState {
     pub position: (usize, usize),

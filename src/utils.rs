@@ -175,7 +175,7 @@ pub fn draw_line(
     Ok(())
 }
 // display out answer as we find words
-pub fn display_word(ctx: &mut Context, canvas: &mut Canvas, word: &str, idx: usize) {
+pub fn display_word(_ctx: &mut Context, canvas: &mut Canvas, word: &str, idx: usize) {
     let draw_params = graphics::DrawParam::new()
         .dest([
             START_X + GRID_SIZE * BOARD_SIZE as f32 + 100.0,

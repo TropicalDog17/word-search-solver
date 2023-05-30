@@ -1,5 +1,5 @@
+use crate::board::Board;
 use crate::constant::*;
-use crate::state::board_state::Board;
 use crate::state::search_state::SearchState;
 use crate::trie::Trie;
 use crate::utils::*;
@@ -7,6 +7,7 @@ use ggez::event::EventHandler;
 use ggez::graphics::{self};
 use ggez::{glam::*, Context, GameResult};
 use std::path::Path;
+
 pub struct MainState {
     pub grid_mesh: graphics::Mesh,
     pub line_mesh: graphics::Mesh,
@@ -114,11 +115,11 @@ impl EventHandler for MainState {
             }
         }
         let mut mb = self.mb.clone();
+        let found_words_idx = self.found_words_idx.clone();
         // Construct the line mesh based on the found words
-        let fw = self.found_words_idx.clone();
-        for (idx, st) in fw.iter().enumerate() {
-            let start_idx = st.0;
-            let end_idx = st.1;
+        for (idx, word_idx) in found_words_idx.iter().enumerate() {
+            let start_idx = word_idx.0;
+            let end_idx = word_idx.1;
             draw_line(self, ctx, start_idx, end_idx, &mut mb, &mut canvas)?;
             let word = self
                 .board_state
