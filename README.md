@@ -1,6 +1,6 @@
 # word-search-solver
 
-## Install dependencies
+## Install dependencies(Ubuntu 22.04)
 
   ```sudo apt install libasound2-dev libudev-dev pkg-config```
   
@@ -8,11 +8,11 @@
 
   ```cargo run --release```
   
-## Run tests for library
+## Run tests
 
   ```cargo test --release```
   
-## Change config
+## Change config 
 Modify these parameters
 ``` 
 pub const START_X: f32 = <X POSITION OF THE BOARD TOP-LEFT, in pixel>;
